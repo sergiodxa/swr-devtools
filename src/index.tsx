@@ -21,7 +21,7 @@ function useCacheKeys(): string[] {
   );
 }
 
-function useCacheValue(key: string): any {
+function useCacheValue(key: string | null): any {
   return useSubscription(
     React.useMemo(
       () => ({
@@ -94,10 +94,18 @@ const DataExplorerTitle = styled.div`
 
 const SectionTitle = styled.div`
   background: #eaeaea;
-  font-weight: bold;
   height: 44px;
   box-sizing: border-box;
   padding: 12px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+`;
+
+const Title = styled.p`
+  font-weight: bold;
+  font-size: 16px;
+  margin: 0;
 `;
 
 const Action = styled.div`
@@ -189,14 +197,24 @@ function isArrayKey(key: string | string[]): boolean {
 
 function SWRDevtools() {
   const keys = useCacheKeys();
-  const [activeKey, setActiveKey] = React.useState<string>(keys[0]);
+  const [activeKey, setActiveKey] = React.useState<string | null>(keys[0]);
   const activeValue = useCacheValue(activeKey);
 
   return (
     <Main>
       <KeyExplorer>
         {/* <MainTitle>SWR Devtools {version}</MainTitle> */}
-        <SectionTitle>Cached Keys</SectionTitle>
+        <SectionTitle>
+          <Title>Cached Keys</Title>
+          <DangerAction
+            onClick={() => {
+              cache.clear();
+              setActiveKey(null);
+            }}
+          >
+            Delete Cache
+          </DangerAction>
+        </SectionTitle>
         <KeyList>
           {keys.map(key => (
             <KeyButton
