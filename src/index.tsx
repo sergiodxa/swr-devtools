@@ -3,7 +3,7 @@ import { cache, mutate } from 'swr';
 import { useSubscription } from 'use-subscription';
 import styled from 'styled-components';
 
-import { version } from '../package.json';
+// import { version } from '../package.json';
 
 function useCacheKeys(): string[] {
   return useSubscription(
@@ -199,6 +199,7 @@ function SWRDevtools() {
   const keys = useCacheKeys();
   const [activeKey, setActiveKey] = React.useState<string | null>(keys[0]);
   const activeValue = useCacheValue(activeKey);
+  const [searchValue, setSearchValue] = React.useState('');
 
   return (
     <Main>
@@ -206,6 +207,11 @@ function SWRDevtools() {
         {/* <MainTitle>SWR Devtools {version}</MainTitle> */}
         <SectionTitle>
           <Title>Cached Keys</Title>
+          <input
+            type="search"
+            value={searchValue}
+            onChange={event => setSearchValue(event.target.value)}
+          />
           <DangerAction
             onClick={() => {
               cache.clear();
@@ -216,15 +222,20 @@ function SWRDevtools() {
           </DangerAction>
         </SectionTitle>
         <KeyList>
-          {keys.map(key => (
-            <KeyButton
-              key={key}
-              onClick={() => setActiveKey(key)}
-              isActive={key === activeKey}
-            >
-              {serializeKey(parseKey(key))}
-            </KeyButton>
-          ))}
+          {keys
+            .filter(key => {
+              if (searchValue === '') return true;
+              return key.includes(searchValue);
+            })
+            .map(key => (
+              <KeyButton
+                key={key}
+                onClick={() => setActiveKey(key)}
+                isActive={key === activeKey}
+              >
+                {serializeKey(parseKey(key))}
+              </KeyButton>
+            ))}
         </KeyList>
       </KeyExplorer>
       {activeKey && (
