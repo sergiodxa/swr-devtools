@@ -3,7 +3,7 @@ import { cache, mutate } from 'swr';
 import { useSubscription } from 'use-subscription';
 import styled from 'styled-components';
 
-// import { version } from '../package.json';
+import { version } from '../package.json';
 
 function useCacheKeys(): string[] {
   return useSubscription(
@@ -46,14 +46,20 @@ const Main = styled.div`
   bottom: 0;
   color: #000000;
   display: flex;
+  flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  height: calc(100vh / 3);
+  height: calc(100vh / 2.5);
   left: 0;
   line-height: 1;
   position: fixed;
   right: 0;
   width: 100%;
+`;
+
+const ExplorerSection = styled.div`
+  display: flex;
+  height: 100%;
 `;
 
 const KeyExplorer = styled.div`
@@ -83,6 +89,7 @@ const KeyButton = styled.button<{ isActive: boolean }>`
 `;
 
 const DataExplorer = styled.div`
+  height: 100%;
   flex: 1;
 `;
 
@@ -103,9 +110,17 @@ const SectionTitle = styled.div`
 `;
 
 const Title = styled.p`
+  flex: 1;
   font-weight: bold;
   font-size: 16px;
   margin: 0;
+`;
+
+const TitleActions = styled.div`
+  display: flex;
+  flex: 2;
+  justify-content: space-evenly;
+  align-items: center;
 `;
 
 const Action = styled.div`
@@ -131,6 +146,10 @@ const DangerAction = styled(Action)`
   }
 `;
 
+const Link = styled.a`
+  text-decoration: none;
+`;
+
 const ActionsSection = styled.div`
   display: flex;
   padding: 8px;
@@ -150,7 +169,7 @@ const InlineCode = styled.code`
 `;
 
 const CodeBlock = styled.div`
-  height: calc(100% - 44px);
+  height: calc(100% - 88px);
   box-sizing: border-box;
   overflow-y: auto;
   padding: 12px;
@@ -175,9 +194,10 @@ const ErrorBadge = styled(Badge)`
   background: #ff0080;
 `;
 
-// const MainTitle = styled(SectionTitle)`
-//   color: #888;
-// `;
+const MainTitle = styled(SectionTitle)`
+  flex: 1;
+  color: #888;
+`;
 
 function serializeKey(parsedKey: string[]): string {
   if (isErrorKey(parsedKey)) return parsedKey.slice(1).join(', ');
@@ -200,18 +220,31 @@ function SWRDevtools() {
   const [activeKey, setActiveKey] = React.useState<string | null>(keys[0]);
   const activeValue = useCacheValue(activeKey);
   const [searchValue, setSearchValue] = React.useState('');
+  const [cacheData, setCacheData] = React.useState('');
+
+  React.useEffect(() => {
+    let cacheObj: { [key: string]: any } = {};
+    keys.forEach(key => (cacheObj[key] = cache.get(key)));
+    setCacheData(
+      'text/json;charset=utf-8,' +
+        encodeURIComponent(JSON.stringify(cacheObj, null, 2))
+    );
+  }, [keys]);
 
   return (
     <Main>
-      <KeyExplorer>
-        {/* <MainTitle>SWR Devtools {version}</MainTitle> */}
-        <SectionTitle>
-          <Title>Cached Keys</Title>
+      <SectionTitle>
+        <Title>Cached Keys</Title>
+        <TitleActions>
           <input
             type="search"
             value={searchValue}
             onChange={event => setSearchValue(event.target.value)}
           />
+          <Action onClick={() => null}>Import Cache</Action>
+          <Link href={`data:${cacheData}`} download="swr-cache.json">
+            <Action>Export Cache</Action>
+          </Link>
           <DangerAction
             onClick={() => {
               cache.clear();
@@ -220,52 +253,57 @@ function SWRDevtools() {
           >
             Delete Cache
           </DangerAction>
-        </SectionTitle>
-        <KeyList>
-          {keys
-            .filter(key => {
-              if (searchValue === '') return true;
-              return key.includes(searchValue);
-            })
-            .map(key => (
-              <KeyButton
-                key={key}
-                onClick={() => setActiveKey(key)}
-                isActive={key === activeKey}
-              >
-                {serializeKey(parseKey(key))}
-              </KeyButton>
-            ))}
-        </KeyList>
-      </KeyExplorer>
-      {activeKey && (
-        <DataExplorer>
-          <DataExplorerTitle>
-            <SectionTitle>
-              Data Explorer{' '}
-              <InlineCode>{serializeKey(parseKey(activeKey))}</InlineCode>{' '}
-              {isErrorKey(activeKey) && <ErrorBadge>error</ErrorBadge>}{' '}
-              {isArrayKey(activeKey) && <Badge>array</Badge>}
-            </SectionTitle>
-            <ActionsSection>
-              <Action onClick={() => mutate(activeKey)}>Revalidate</Action>
-              <DangerAction
-                onClick={() => {
-                  cache.delete(activeKey);
-                  setActiveKey(keys[0]);
-                }}
-              >
-                Delete
-              </DangerAction>
-            </ActionsSection>
-          </DataExplorerTitle>
-          <CodeBlock>
-            <pre>
-              <code>{JSON.stringify(activeValue, null, 2)}</code>
-            </pre>
-          </CodeBlock>
-        </DataExplorer>
-      )}
+        </TitleActions>
+        <MainTitle>SWR Devtools {version}</MainTitle>
+      </SectionTitle>
+      <ExplorerSection>
+        <KeyExplorer>
+          <KeyList>
+            {keys
+              .filter(key => {
+                if (searchValue === '') return true;
+                return key.includes(searchValue);
+              })
+              .map(key => (
+                <KeyButton
+                  key={key}
+                  onClick={() => setActiveKey(key)}
+                  isActive={key === activeKey}
+                >
+                  {serializeKey(parseKey(key))}
+                </KeyButton>
+              ))}
+          </KeyList>
+        </KeyExplorer>
+        {activeKey && (
+          <DataExplorer>
+            <DataExplorerTitle>
+              <SectionTitle>
+                Data Explorer{' '}
+                <InlineCode>{serializeKey(parseKey(activeKey))}</InlineCode>{' '}
+                {isErrorKey(activeKey) && <ErrorBadge>error</ErrorBadge>}{' '}
+                {isArrayKey(activeKey) && <Badge>array</Badge>}
+              </SectionTitle>
+              <ActionsSection>
+                <Action onClick={() => mutate(activeKey)}>Revalidate</Action>
+                <DangerAction
+                  onClick={() => {
+                    cache.delete(activeKey);
+                    setActiveKey(keys[0]);
+                  }}
+                >
+                  Delete
+                </DangerAction>
+              </ActionsSection>
+            </DataExplorerTitle>
+            <CodeBlock>
+              <pre>
+                <code>{JSON.stringify(activeValue, null, 2)}</code>
+              </pre>
+            </CodeBlock>
+          </DataExplorer>
+        )}
+      </ExplorerSection>
     </Main>
   );
 }
