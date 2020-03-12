@@ -220,14 +220,14 @@ function SWRDevtools() {
   const [activeKey, setActiveKey] = React.useState<string | null>(keys[0]);
   const activeValue = useCacheValue(activeKey);
   const [searchValue, setSearchValue] = React.useState('');
-  const [cacheData, setCacheData] = React.useState('');
+  const [cacheObj, setCacheObj] = React.useState<{ [key: string]: any }>({});
 
   React.useEffect(() => {
-    let cacheObj: { [key: string]: any } = {};
-    keys.forEach(key => (cacheObj[key] = cache.get(key)));
-    setCacheData(
-      'text/json;charset=utf-8,' +
-        encodeURIComponent(JSON.stringify(cacheObj, null, 2))
+    setCacheObj(
+      keys.reduce((acc: { [key: string]: any }, key) => {
+        acc[key] = cache.get(key);
+        return acc;
+      }, {})
     );
   }, [keys]);
 
@@ -242,7 +242,11 @@ function SWRDevtools() {
             onChange={event => setSearchValue(event.target.value)}
           />
           <Action onClick={() => null}>Import Cache</Action>
-          <Link href={`data:${cacheData}`} download="swr-cache.json">
+          <Link
+            href={`data:${'text/json;charset=utf-8,' +
+              encodeURIComponent(JSON.stringify(cacheObj, null, 2))}`}
+            download="swr-cache.json"
+          >
             <Action>Export Cache</Action>
           </Link>
           <DangerAction
