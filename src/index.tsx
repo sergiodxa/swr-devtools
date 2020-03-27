@@ -221,6 +221,7 @@ function SWRDevtools() {
   const activeValue = useCacheValue(activeKey);
   const [searchValue, setSearchValue] = React.useState('');
   const [cacheObj, setCacheObj] = React.useState<{ [key: string]: any }>({});
+  const hiddenInputFile = React.useRef(null);
 
   React.useEffect(() => {
     setCacheObj(
@@ -230,6 +231,22 @@ function SWRDevtools() {
       }, {})
     );
   }, [keys]);
+
+  function handleImportCache(event: any) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const fileReader = new FileReader();
+    fileReader.onloadend = () => {
+      const content = fileReader?.result?.toString();
+      if (!content) return;
+      const newCacheObj = JSON.parse(content);
+      const newCacheKeys = Object.keys(newCacheObj);
+      cache.clear();
+      newCacheKeys.forEach(newKey => mutate(newKey, newCacheObj[newKey]));
+      setActiveKey(newCacheKeys[0]);
+    };
+    fileReader.readAsText(file);
+  }
 
   return (
     <Main>
@@ -241,7 +258,16 @@ function SWRDevtools() {
             value={searchValue}
             onChange={event => setSearchValue(event.target.value)}
           />
-          <Action onClick={() => null}>Import Cache</Action>
+          <Action onClick={() => hiddenInputFile?.current?.click()}>
+            Import Cache
+          </Action>
+          <input
+            type="file"
+            accept=".json"
+            onChange={handleImportCache}
+            hidden
+            ref={hiddenInputFile}
+          />
           <Link
             href={`data:${'text/json;charset=utf-8,' +
               encodeURIComponent(JSON.stringify(cacheObj, null, 2))}`}
